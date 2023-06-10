@@ -1,0 +1,110 @@
+module Memory(clk,write_address,write_Data,read_Data,write_CB,read_CB,write_PB,read_PB,set_read,set_write,read_address);
+  input clk;
+  input set_read;
+  input set_write;
+  input[4:0]write_address;
+  input[4:0]read_address;
+  input[31:0]write_Data;
+  output reg[31:0]read_Data;
+  input[19:0]write_CB;
+  output reg[19:0]read_CB;
+  input[7:0]write_PB;
+  output reg[7:0]read_PB;
+integer j, i;
+  
+  reg [63:0] memory_ram [63:0];
+initial begin
+   for(i=0;i<63;i=i+1)begin
+        memory_ram[i]<= 1'b0 ;
+      end
+end
+  always @(negedge clk)
+begin
+  if(set_write)
+    begin
+      for(i=0;i<32;i=i+1)begin
+        memory_ram[i][write_address] <= write_Data[i];
+      end
+      for(i=32;i<52;i=i+1)begin
+        memory_ram[i][write_address] <= write_CB[i-32];
+      end
+      for(i=52;i<60;i=i+1)begin
+        memory_ram[i][write_address] <= write_PB[i-52];
+      end  
+    end
+end
+
+
+  always @(posedge clk)
+begin
+  if (set_read)
+    begin
+      for(i=0;i<32;i=i+1)begin
+        read_Data[i] <=  memory_ram[i][read_address];
+      end
+      for(i=32;i<52;i=i+1)begin
+        read_CB[i-32] <=  memory_ram[i][read_address];
+      end
+      for(i=52;i<60;i=i+1)begin
+        read_PB[i-52] <=  memory_ram[i][read_address];
+      end  
+    end
+end
+
+endmodule
+
+
+//////////////////////
+
+module testbench_Memory;
+  reg clk_t;
+  reg set_read_t;
+  reg set_write_t;
+  reg [4:0]write_address_t;
+  reg [4:0]read_address_t;
+  reg [31:0]write_Data_t;
+  wire [31:0]read_Data_t;
+  reg [19:0]write_CB_t;
+  wire [19:0]read_CB_t;
+  reg [7:0]write_PB_t;
+  wire [7:0]read_PB_t;
+  Memory mem1(clk_t,write_address_t,write_Data_t,read_Data_t,write_CB_t,read_CB_t,write_PB_t,read_PB_t,set_read_t,set_write_t,read_address_t);
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+
+  initial
+    begin
+      set_write_t=1;
+      set_read_t=0;
+      write_address_t=5'b00010;
+      write_Data_t=32'h207AE468;
+      write_CB_t=20'hA76B3;
+      write_PB_t=8'hAA;
+      #100
+      set_write_t=1;
+      set_read_t=0;
+      write_address_t=5'b00100;
+      write_Data_t=32'h207AE977;
+      write_CB_t=20'h77777;
+      write_PB_t=8'hFF;
+      #100
+      set_write_t=0;
+      set_read_t=1;
+      read_address_t=5'b00010;
+      #100
+      $display("Address = %b Data = %h CB = %h PB = %b",read_address_t,read_Data_t,read_CB_t,read_PB_t);
+      #100
+      set_write_t=0;
+      set_read_t=1;
+      read_address_t=5'b01000;
+      #100
+      $display("Address = %b Data = %h CB = %h PB = %b",read_address_t,read_Data_t,read_CB_t,read_PB_t);
+      #100
+      set_write_t=0;
+      set_read_t=1;
+      read_address_t=5'b00100;
+      #100
+      $display("Address = %b Data = %h CB = %h PB = %b",read_address_t,read_Data_t,read_CB_t,read_PB_t);
+      #1000 $finish;
+    end
+endmodule

@@ -1,0 +1,100 @@
+module primeGen(clk,Data_in,CB_old_in,PB_old_in,CB_new1,PB_new1,Data_out,CB_old_out,PB_old_out);
+  input clk;
+  input [31:0] Data_in;
+  output reg [31:0] Data_out;
+  input [19:0] CB_old_in;
+  input [7:0] PB_old_in;
+  output reg [19:0] CB_old_out;
+  output reg [7:0] PB_old_out;
+  reg [19:0] CB_old;
+  reg [7:0] PB_old;
+  reg [19:0]CB_new;
+  reg [7:0]PB_new;
+  reg [31:0] Data;
+  output reg [19:0]CB_new1;
+  output reg [7:0]PB_new1;
+  
+  always @ (negedge clk)
+      begin
+        CB_old=CB_old_in;
+        PB_old=PB_old_in;
+        Data=Data_in;
+        CB_new[0]=Data[0]^Data[1]^Data[3]^Data[4]^Data[6];
+        
+        CB_new[5]=Data[8]^Data[9]^Data[11]^Data[12]^Data[14];
+        CB_new[10]=Data[16]^Data[17]^Data[19]^Data[20]^Data[22];
+        CB_new[15]=Data[24]^Data[25]^Data[27]^Data[28]^Data[30];
+        CB_new[1]=Data[0]^Data[2]^Data[3]^Data[5]^Data[6];
+        CB_new[6]=Data[8]^Data[10]^Data[11]^Data[13]^Data[14];
+        CB_new[11]=Data[16]^Data[18]^Data[19]^Data[21]^Data[22];
+        CB_new[16]=Data[24]^Data[26]^Data[27]^Data[29]^Data[30];
+        CB_new[2]=Data[1]^Data[2]^Data[3]^Data[7];
+        CB_new[7]=Data[9]^Data[10]^Data[11]^Data[15];
+        CB_new[12]=Data[17]^Data[18]^Data[19]^Data[23];
+        CB_new[17]=Data[25]^Data[26]^Data[27]^Data[31];
+        CB_new[3]=Data[4]^Data[5]^Data[6]^Data[7];
+        CB_new[8]=Data[12]^Data[13]^Data[14]^Data[15];
+        CB_new[13]=Data[20]^Data[21]^Data[22]^Data[23];
+        CB_new[18]=Data[28]^Data[29]^Data[30]^Data[31];
+       CB_new[4]=Data[0]^Data[1]^Data[2]^Data[3]^Data[4]^Data[5]^Data[6]^Data[7];
+   CB_new[9]=Data[8]^Data[9]^Data[10]^Data[11]^Data[12]^Data[13]^Data[14]^Data[15];
+        CB_new[14]=Data[16]^Data[17]^Data[18]^Data[19]^Data[20]^Data[21]^Data[22]^Data[23];
+        CB_new[19]=Data[24]^Data[25]^Data[26]^Data[27]^Data[28]^Data[29]^Data[30]^Data[31];
+        PB_new[0]=Data[0]^Data[8]^Data[16]^Data[24];
+        PB_new[1]=Data[1]^Data[9]^Data[17]^Data[25];
+        PB_new[2]=Data[2]^Data[10]^Data[18]^Data[26];
+        PB_new[3]=Data[3]^Data[11]^Data[19]^Data[27];
+        PB_new[4]=Data[4]^Data[12]^Data[20]^Data[28];
+        PB_new[5]=Data[5]^Data[13]^Data[21]^Data[29];
+        PB_new[6]=Data[6]^Data[14]^Data[22]^Data[30];
+        PB_new[7]=Data[7]^Data[15]^Data[23]^Data[31];
+      end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    CB_old_out=CB_old;
+    PB_old_out=PB_old;
+    CB_new1=CB_new;
+    PB_new1=PB_new;
+  end
+endmodule
+
+
+
+//////////////////////////
+
+
+module testbench_1st_stage;
+  reg [31:0]Data_in_t;
+  wire [31:0]Data_out_t;
+  wire [19:0]CB_old_out_t;
+  wire [7:0]PB_old_out_t;
+  reg clk_t;
+  reg [19:0]CB_old_in_t;
+  reg [7:0]PB_old_in_t;
+  wire[19:0]CB_new_t;
+  wire[7:0]PB_new_t;
+  primeGen dec1(clk_t,Data_in_t,CB_old_in_t,PB_old_in_t,CB_new_t,PB_new_t,Data_out_t,CB_old_out_t,PB_old_out_t);
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+
+    integer i;
+  initial
+    begin
+      for(i=0;i<32;i=i+1)begin
+        #20 Data_in_t[i]=($random)%2;end 
+      for(i=1;i<=32;i=i+1)begin
+        #5 $write("%b",Data_out_t[i-1]);
+        if(i%8==0 & i!=0)
+          #5 $display(".");
+      end
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        
+        #20 $display("CB_new[%1d]=%b",i,CB_new_t[i]);
+      end
+      for(i=0;i<8;i=i+1)begin
+        #20 $display("PB_new[%1d]=%b",i,PB_new_t[i]);
+      end
+      #1000 $finish;
+    end
+endmodule

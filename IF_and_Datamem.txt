@@ -1,0 +1,63 @@
+module DataMemory(PC,Data);
+  
+  input [5:0]PC;
+  reg [63:0] memory_Data [31:0];
+  output reg [31:0]Data;
+  integer i,j;
+  
+  initial 
+      begin
+        
+          for(i=0;i<64;i=i+4)begin
+            for(j=0;j<32;j=j+1)begin
+              memory_Data[i][j]=($random)%2;
+            end
+          end
+        
+      end
+  always @(*)begin
+         Data=memory_Data[PC];
+  end
+  
+endmodule
+
+module IF(clk,PC_in,Data);
+  input clk;
+  input[5:0]PC_in;
+  output reg [31:0]Data;
+  wire [31:0]Dataa;
+  DataMemory p2(PC_in,Dataa);
+  always@(posedge clk)
+    begin
+      assign Data = Dataa;
+    end
+        endmodule
+
+/////////////////////
+
+
+module testbench_1st_stage;
+  wire [31:0]Data_t;
+  reg clk_t;
+  reg [5:0]PC_t;
+  IF IF1(clk_t,PC_t,Data_t);
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+
+    integer i;
+  initial
+    begin
+      #20
+      PC_t=6'b000000;
+      #20 $display("when PC=%b  Data=%h",PC_t,Data_t);
+      
+      PC_t=6'b000100;
+
+   
+        #20 $display("when PC=%b  Data=%h",PC_t,Data_t);
+      
+      #1000 $finish;
+    end
+endmodule
+
+

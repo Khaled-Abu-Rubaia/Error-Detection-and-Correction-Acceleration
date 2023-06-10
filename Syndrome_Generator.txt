@@ -1,0 +1,105 @@
+module SyndGen(clk,Data_in,CB_old,PB_old,CB_new,PB_new,SBC1,SBP1,Data_out);
+  input clk;
+  reg [31:0]Data;
+  input[31:0]Data_in;
+  output reg[31:0]Data_out;
+  input [19:0]CB_old;
+  input [7:0]PB_old;
+  input [19:0]CB_new;
+  input [7:0]PB_new;
+  reg [19:0]SBC;
+  reg [7:0]SBP;
+  output reg [19:0]SBC1;
+  output reg [7:0]SBP1;
+  integer i;
+  always @ (negedge clk)
+    begin
+      Data=Data_in;
+      for(i=0;i<20;i=i+1)begin
+        SBC[i]=CB_old[i]^CB_new[i];
+      end
+      for(i=0;i<8;i=i+1)begin
+        SBP[i]=PB_old[i]^PB_new[i];
+      end
+    end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    SBC1=SBC;
+    SBP1=SBP;
+  end
+  
+endmodule
+
+
+/////////////////////////
+
+
+
+module testbench_SyndGen;
+  reg clk_t;
+  reg [31:0]Data_in_t;
+  wire [31:0]Data_out_t;
+  reg [19:0]CB_old_t;
+  reg [7:0]PB_old_t;
+  reg [19:0]CB_new_t;
+  reg [7:0]PB_new_t;
+  wire [19:0]SBC_t;
+  wire [7:0]SBP_t;
+  
+  SyndGen syng1(clk_t,Data_in_t,CB_old_t,PB_old_t,CB_new_t,PB_new_t,SBC_t,SBP_t,Data_out_t);
+  
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+  
+  integer i;
+  
+  initial 
+    begin
+      
+      for(i=0;i<32;i=i+1)begin
+        #20 Data_in_t[i]=($random)%2;end 
+      for(i=1;i<=32;i=i+1)begin
+        #5 $write("%b",Data_out_t[i-1]);
+        if(i%8==0 & i!=0)
+          #5 $display(".");
+      end
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        
+        CB_old_t[i]=($random)%2;
+        CB_new_t[i]=($random)%2;
+      end
+      #5 $display(".");
+      for(i=0;i<8;i=i+1)begin
+        
+        PB_old_t[i]=($random)%2;
+        PB_new_t[i]=($random)%2;
+      end
+      
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        
+        #20 $display("CB_old[%1d] = %b =? CB_new[%1d] = %b",i,CB_old_t[i],i,CB_new_t[i]);
+      end
+      #5 $display(".");
+      for(i=0;i<8;i=i+1)begin
+        #20 $display("PB_old[%1d] = %b =? PB_new[%1d] = %b ",i,PB_old_t[i],i,PB_new_t[i]);
+      end
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        
+        #20 $display("SBC[%1d] = %b ",i,SBC_t[i]);
+      end
+      #5 $display(".");
+      for(i=0;i<8;i=i+1)begin
+        #20 $display("SBP[%1d] = %b ",i,SBP_t[i]);
+      end
+      
+      
+      
+      
+      #1000 $finish;
+      
+      
+    end
+endmodule

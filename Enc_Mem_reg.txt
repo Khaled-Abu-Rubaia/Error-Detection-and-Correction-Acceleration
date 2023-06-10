@@ -1,0 +1,65 @@
+module Enc_Mem_reg(clk_in,Data_in,CB_in,PB_in,Data_out,CB_out,PB_out);
+  
+  
+  input clk_in;
+  input [31:0] Data_in;
+  input [19:0] CB_in;
+  input [7:0] PB_in;
+  output reg [31:0] Data_out;
+  output reg [19:0]CB_out;
+  output reg [7:0]PB_out;
+  Encoder enc1(Data_in,CB_in,PB_in,clk_in);
+  
+  always@(posedge clk_in) begin
+    assign Data_out = Data_in;
+    assign CB_out = CB_in;
+    assign PB_out = PB_in;
+
+  end
+endmodule
+
+
+///////////////
+
+module testbench_Enc_Mem_reg;
+  reg [31:0]Data_in_t;
+  reg clk_t;
+  reg[19:0]CB_in_t;
+  reg[7:0]PB_in_t;
+  wire[19:0]CB_out_t;
+  wire[7:0]PB_out_t;
+  wire [31:0]Data_out_t;
+  Enc_Mem_reg emr1(clk_t,Data_in_t,CB_in_t,PB_in_t,Data_out_t,CB_out_t,PB_out_t);
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+
+    integer i,j;
+  initial
+    begin
+      for(i=0;i<32;i=i+1)begin
+        #20 Data_in_t[i]=($random)%2;end 
+      for(i=1;i<=32;i=i+1)begin
+        #5 $write("%b",Data_in_t[i-1]);
+        if(i%8==0 & i!=0)begin
+          #5 $write("  must equal  ");
+          for(j=8;j>0;j=j-1)begin
+            #5 $write("%b",Data_out_t[i-j]);
+            if(j==1)begin
+              #5 $display(".");end
+          end
+        end
+      end
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        #20 CB_in_t[i]=($random)%2;end
+      for(i=0;i<20;i=i+1)begin
+        #5 $display("CB_IN[%1d]=%b must equal CB_OUT[%1d]=%b",i,CB_in_t[i],i,CB_out_t[i]);
+      end
+      for(i=0;i<8;i=i+1)begin
+        #20 PB_in_t[i]=($random)%2;end
+      for(i=0;i<8;i=i+1)begin
+        #20 $display("PB_IN[%1d]=%b must equal PB_OUT[%1d]=%b ",i,PB_in_t[i],i,PB_out_t[i]);
+      end
+      #1000 $finish;
+    end
+endmodule

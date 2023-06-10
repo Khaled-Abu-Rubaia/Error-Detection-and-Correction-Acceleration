@@ -1,0 +1,157 @@
+module Correct_Error(clk,Data_in,SBC,SBP,NE,SE,MED,Data_out1);
+  input clk;
+input  [31:0] Data_in;
+input [19:0] SBC;
+input [7:0] SBP;
+input [3:0]NE;
+input [3:0]SE;
+input [3:0]MED;
+  reg [31:0] Data_out;
+  output reg [31:0] Data_out1;
+integer i,j;
+  
+  always @ (negedge clk)
+
+  begin
+            
+
+    for(i=0;i<4;i=i+1)begin
+      if(NE[i])begin
+            for(j=0;j<8;j=j+1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)];
+        end
+      end
+    
+      else if (SE[i])begin
+        for(j=0;j<8;j=j+1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)];
+        end
+        if(SBC[i*5]*SBC[1+(i*5)]*SBC[2+(i*5)])begin
+          Data_out[3+(i*8)]=~Data_in[3+(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[1+(i*5)]*SBC[3+(i*5)])begin
+          Data_out[6+(i*8)]=~Data_in[6+(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[1+(i*5)])begin
+          Data_out[(i*8)]=~Data_in[(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[2+(i*5)])begin
+          Data_out[1+(i*8)]=~Data_in[1+(i*8)];
+        end
+        
+        else if(SBC[1+(i*5)]*SBC[2+(i*5)])begin
+          Data_out[2+(i*8)]=~Data_in[2+(i*8)];
+        end
+        
+        else if(SBC[1+(i*5)]*SBC[3+(i*5)])begin
+          Data_out[5+(i*8)]=~Data_in[5+(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[3+(i*5)])begin
+          Data_out[4+(i*8)]=~Data_in[4+(i*8)];
+        end
+        
+        else if(SBC[2+(i*5)]*SBC[3+(i*5)])begin
+          Data_out[7+(i*8)]=~Data_in[7+(i*8)];
+        end
+        
+     
+      end
+    
+    
+      else if(MED[i])begin
+        for(j=0;j<8;j=j+1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)];
+        end
+        for(j=0;j<8;j=j+1)begin
+          if(SBP[j]==1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)]^(MED[i]*SBP[i]);
+          end
+        end
+        
+      end
+    end
+  end
+  always @ (posedge clk)begin
+    Data_out1=Data_out;
+  end
+endmodule
+
+///////////////////////////////////
+
+
+module testbench_Correct_Error;
+reg clk_t;
+  reg [31:0] Data_in_t;
+  reg [19:0] SBC_t;
+  reg [7:0] SBP_t;
+  reg [3:0]NE_t;
+  reg [3:0]SE_t;
+  reg [3:0]MED_t;
+  wire [31:0] Data_out_t;
+  
+  Correct_Error coreE1(clk_t,Data_in_t,SBC_t,SBP_t,NE_t,SE_t,MED_t,Data_out_t);
+  
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+  
+  integer i,j;
+  initial
+    begin
+      NE_t=4'b0110;
+      SE_t=4'b0001;
+      MED_t=4'b1000;
+      for(i=0;i<32;i=i+1)begin
+        #20 Data_in_t[i]=($random)%2;end 
+      for(i=1;i<=32;i=i+1)begin
+        #5 $write("%b",Data_in_t[i-1]);
+        if(i%8==0 & i!=0)begin
+          #5 $display(".");
+        end
+      end
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        #20 SBC_t[i]=($random)%1;end
+      #20SBC_t[1]=1;
+      #20SBC_t[0]=1;
+      #20SBC_t[2]=1;
+      #20SBC_t[15]=1;
+      #20SBC_t[18]=1;
+      for(i=0;i<20;i=i+1)begin
+        #5 $display("SBC[%1d]=%b",i,SBC_t[i]);
+      end
+      #5 $display(".");
+      for(i=0;i<8;i=i+1)begin
+        #20 SBP_t[i]=($random)%1;end
+   
+      #20SBP_t[1]=1;
+      #20SBP_t[7]=1;
+      #20SBP_t[3]=1;
+      #20SBP_t[2]=1;
+      for(i=0;i<8;i=i+1)begin
+        #5 $display("SBP[%1d]=%b",i,SBP_t[i]);
+      end
+      
+      #20 $display("NE =  %b",NE_t);
+      #20 $display("SE =  %b",SE_t);
+      #20 $display("MED = %b",MED_t);
+      
+      for(i=1;i<=32;i=i+1)begin
+        #5 $write("%b",Data_out_t[i-1]);
+        if(i%8==0 & i!=0)begin
+          #5 $display(".");
+        end
+      end
+      #5 $display(".");
+      
+      
+
+
+
+      #1000 $finish;
+    end
+endmodule
+  

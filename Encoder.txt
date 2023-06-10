@@ -1,0 +1,87 @@
+module Encoder Encoder(Data_in,CB1,PB1,clk,Data_out);
+  reg [31:0]Data;
+  input [31:0]Data_in;
+  output reg [31:0]Data_out;
+  input clk;
+  reg [19:0]CB;
+  reg [7:0]PB;
+  output reg[19:0]CB1;
+  output reg[7:0]PB1;
+  
+
+  always @ (negedge clk)
+      begin
+                Data=Data_in;
+        CB[0]=Data[0]^Data[1]^Data[3]^Data[4]^Data[6];
+        
+        CB[5]=Data[8]^Data[9]^Data[11]^Data[12]^Data[14];
+        CB[10]=Data[16]^Data[17]^Data[19]^Data[20]^Data[22];
+        CB[15]=Data[24]^Data[25]^Data[27]^Data[28]^Data[30];
+        CB[1]=Data[0]^Data[2]^Data[3]^Data[5]^Data[6];
+        CB[6]=Data[8]^Data[10]^Data[11]^Data[13]^Data[14];
+        CB[11]=Data[16]^Data[18]^Data[19]^Data[21]^Data[22];
+        CB[16]=Data[24]^Data[26]^Data[27]^Data[29]^Data[30];
+        CB[2]=Data[1]^Data[2]^Data[3]^Data[7];
+        CB[7]=Data[9]^Data[10]^Data[11]^Data[15];
+        CB[12]=Data[17]^Data[18]^Data[19]^Data[23];
+        CB[17]=Data[25]^Data[26]^Data[27]^Data[31];
+        CB[3]=Data[4]^Data[5]^Data[6]^Data[7];
+        CB[8]=Data[12]^Data[13]^Data[14]^Data[15];
+        CB[13]=Data[20]^Data[21]^Data[22]^Data[23];
+        CB[18]=Data[28]^Data[29]^Data[30]^Data[31];
+       CB[4]=Data[0]^Data[1]^Data[2]^Data[3]^Data[4]^Data[5]^Data[6]^Data[7];
+   CB[9]=Data[8]^Data[9]^Data[10]^Data[11]^Data[12]^Data[13]^Data[14]^Data[15];
+        CB[14]=Data[16]^Data[17]^Data[18]^Data[19]^Data[20]^Data[21]^Data[22]^Data[23];
+        CB[19]=Data[24]^Data[25]^Data[26]^Data[27]^Data[28]^Data[29]^Data[30]^Data[31];
+        PB[0]=Data[0]^Data[8]^Data[16]^Data[24];
+        PB[1]=Data[1]^Data[9]^Data[17]^Data[25];
+        PB[2]=Data[2]^Data[10]^Data[18]^Data[26];
+        PB[3]=Data[3]^Data[11]^Data[19]^Data[27];
+        PB[4]=Data[4]^Data[12]^Data[20]^Data[28];
+        PB[5]=Data[5]^Data[13]^Data[21]^Data[29];
+        PB[6]=Data[6]^Data[14]^Data[22]^Data[30];
+        PB[7]=Data[7]^Data[15]^Data[23]^Data[31];
+      end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    CB1=CB;
+    PB1=PB;
+  end
+endmodule
+
+
+//////////////////////////
+
+
+module testbench_1st_stage;
+  wire [31:0]Data_t;
+  reg [31:0]Data_in_t;
+  reg clk_t;
+  wire[19:0]CB_t;
+  wire[7:0]PB_t;
+  Encoder enc1(Data_in_t,CB_t,PB_t,clk_t,Data_t);
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+
+    integer i;
+  initial
+    begin
+      for(i=0;i<32;i=i+1)begin
+        #20 Data_in_t[i]=($random)%2;end 
+      for(i=1;i<=32;i=i+1)begin
+        #5 $write("%b",Data_t[i-1]);
+        if(i%8==0 & i!=0)
+          #5 $display(".");
+      end
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        
+        #20 $display("CB[%1d]=%b",i,CB_t[i]);
+      end
+      for(i=0;i<8;i=i+1)begin
+        #20 $display("PB[%1d]=%b",i,PB_t[i]);
+      end
+      #1000 $finish;
+    end
+endmodule
+

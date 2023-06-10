@@ -1,0 +1,10 @@
+module IF_ENC_reg(clk,Data,Data_out);
+  input clk;
+          input [31:0]Data;
+          output reg [31:0]Data_out;
+          always @ (posedge clk)
+    		begin
+      			assign Data_out = Data;
+            end
+          
+endmodule

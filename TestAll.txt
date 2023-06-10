@@ -1,0 +1,662 @@
+module testall(clk,PC,write_address,read_address,set_read,set_write);
+  input clk;
+  input[5:0]PC;
+  //IF
+  wire [31:0]Data;
+  
+  
+  //IF_ENC_reg
+   wire[31:0]Data_out0;
+  
+  
+  //Encoder
+  wire[31:0]Data_out1;
+  wire[19:0]CB;
+  wire[7:0]PB;
+  
+  //Enc_Mem_reg
+  wire[31:0]Data_out2;
+  wire[19:0]CB_out1;
+  wire[7:0]PB_out1;
+  
+  //Memory
+  input [4:0]write_address;
+  input [31:0]read_Data;
+  wire [19:0]read_CB;
+  wire [7:0]read_PB;
+  input set_read;
+  input set_write;
+  input [4:0]read_address;
+  
+  //Mem_primeGen_reg
+  wire[31:0]Data_out3;
+  wire[19:0]CB_out2;
+  wire[7:0]PB_out2;
+  
+  //primeGen
+  wire[19:0]CB_out3;
+  wire[7:0]PB_out3;
+  wire [31:0]Data_out4;
+  wire[19:0]CB_new;
+  wire[7:0]PB_new;
+  
+  
+  //primeGen_SyndGen_reg
+  
+  wire [31:0]Data_out5;
+  wire [19:0]CB_out4;
+  wire [7:0]PB_out4;
+  wire [19:0]CB_new_out;
+  wire [7:0]PB_new_out;
+  
+  //syndrome_generator
+  wire[31:0]Data_out6;
+  wire [19:0]SBC;
+  wire [7:0]SBP;
+  
+  //SyndGen_IdentError_reg
+  wire [31:0] Data_out7;
+  wire [19:0] SBC_out;
+  wire [7:0] SBP_out;
+  
+  //identify_error_type
+  wire [19:0] SBC_out1;
+  wire [7:0] SBP_out1;
+  wire[31:0]Data_out8;
+  wire [3:0]NE;
+  wire [3:0]SE;
+  wire [3:0]MED;
+  
+  //IdentError_CorrectError_reg
+  wire [31:0] Data_out9;
+  wire [19:0] SBC_out2;
+  wire [7:0] SBP_out2;
+  wire [3:0]NE_out;
+  wire [3:0]SE_out;
+  wire [3:0]MED_out;
+  
+  //Correct_Error
+  wire [31:0] Data_corrected;
+  
+  
+  
+  		
+      IF S0(clk,PC,Data);
+   IF_ENC_reg S00(clk,Data,Data_out0);
+  Encoder S1(Data_out0,CB,PB,clk,Data_out1);
+  Enc_Mem_reg S2(clk,Data_out1,CB,PB,Data_out2,CB_out1,PB_out1);
+  Memory S3(clk,write_address,Data_out2,read_Data,CB_out1,read_CB,PB_out1,read_PB,set_read,set_write,read_address);
+  Mem_primeGen_reg S4(clk,read_Data,read_CB,read_PB,Data_out3,CB_out2,PB_out2);
+  primeGen S5(clk,Data_out3,CB_out2,PB_out2,CB_new,PB_new,Data_out4,CB_out3,PB_out3);
+  primeGen_SyndGen_reg S6(clk,Data_out4,CB_out3,PB_out3,CB_new,PB_new,Data_out5,CB_out4,PB_out4,CB_new_out,PB_new_out);
+  SyndGen S7(clk,Data_out5,CB_out4,PB_out4,CB_new_out,PB_new_out,SBC,SBP,Data_out6);
+  SyndGen_IdentError_reg S8(clk,Data_out6,SBC,SBP,Data_out7,SBC_out,SBP_out);
+  identify_error_type S9(clk,Data_out7,SBC_out,SBP_out,NE,SE,MED,Data_out8,SBC_out1,SBP_out1);
+  IdentError_CorrectError_reg S10(clk,Data_out8,SBC_out1,SBP_out1,NE,SE,MED,Data_out9,SBC_out2,SBP_out2,NE_out,SE_out,MED_out);
+  Correct_Error S11(clk,Data_out9,SBC_out2,SBP_out2,NE_out,SE_out,MED_out,Data_corrected);
+      
+  
+      
+  
+endmodule
+
+
+
+module DataMemory(PC,Data);
+  
+  input [5:0]PC;
+  reg [63:0] memory_Data [31:0];
+  output reg [31:0]Data;
+  integer i,j;
+  
+  initial 
+      begin
+        
+          for(i=0;i<64;i=i+4)begin
+            for(j=0;j<32;j=j+1)begin
+              memory_Data[i][j]=($random)%2;
+            end
+          end
+        
+      end
+  always @(*)begin
+         Data=memory_Data[PC];
+  end
+  
+endmodule
+
+module IF(clk,PC_in,Data);
+  input clk;
+  input[5:0]PC_in;
+  output reg [31:0]Data;
+  wire [31:0]Dataa;
+  DataMemory p2(PC_in,Dataa);
+  always@(posedge clk)
+    begin
+      assign Data = Dataa;
+    end
+        endmodule
+
+module IF_ENC_reg(clk,Data,Data_out);
+  input clk;
+          input [31:0]Data;
+          output reg [31:0]Data_out;
+          always @ (posedge clk)
+    		begin
+      			assign Data_out = Data;
+            end
+          
+endmodule
+          
+
+
+module Encoder(Data_in,CB1,PB1,clk,Data_out);
+  reg [31:0]Data;
+  input [31:0]Data_in;
+  output reg [31:0]Data_out;
+  input clk;
+  reg [19:0]CB;
+  reg [7:0]PB;
+  output reg[19:0]CB1;
+  output reg[7:0]PB1;
+  
+
+  always @ (negedge clk)
+      begin
+        Data=Data_in;
+        CB[0]=Data[0]^Data[1]^Data[3]^Data[4]^Data[6];
+        
+        CB[5]=Data[8]^Data[9]^Data[11]^Data[12]^Data[14];
+        CB[10]=Data[16]^Data[17]^Data[19]^Data[20]^Data[22];
+        CB[15]=Data[24]^Data[25]^Data[27]^Data[28]^Data[30];
+        CB[1]=Data[0]^Data[2]^Data[3]^Data[5]^Data[6];
+        CB[6]=Data[8]^Data[10]^Data[11]^Data[13]^Data[14];
+        CB[11]=Data[16]^Data[18]^Data[19]^Data[21]^Data[22];
+        CB[16]=Data[24]^Data[26]^Data[27]^Data[29]^Data[30];
+        CB[2]=Data[1]^Data[2]^Data[3]^Data[7];
+        CB[7]=Data[9]^Data[10]^Data[11]^Data[15];
+        CB[12]=Data[17]^Data[18]^Data[19]^Data[23];
+        CB[17]=Data[25]^Data[26]^Data[27]^Data[31];
+        CB[3]=Data[4]^Data[5]^Data[6]^Data[7];
+        CB[8]=Data[12]^Data[13]^Data[14]^Data[15];
+        CB[13]=Data[20]^Data[21]^Data[22]^Data[23];
+        CB[18]=Data[28]^Data[29]^Data[30]^Data[31];
+       CB[4]=Data[0]^Data[1]^Data[2]^Data[3]^Data[4]^Data[5]^Data[6]^Data[7];
+   CB[9]=Data[8]^Data[9]^Data[10]^Data[11]^Data[12]^Data[13]^Data[14]^Data[15];
+        CB[14]=Data[16]^Data[17]^Data[18]^Data[19]^Data[20]^Data[21]^Data[22]^Data[23];
+        CB[19]=Data[24]^Data[25]^Data[26]^Data[27]^Data[28]^Data[29]^Data[30]^Data[31];
+        PB[0]=Data[0]^Data[8]^Data[16]^Data[24];
+        PB[1]=Data[1]^Data[9]^Data[17]^Data[25];
+        PB[2]=Data[2]^Data[10]^Data[18]^Data[26];
+        PB[3]=Data[3]^Data[11]^Data[19]^Data[27];
+        PB[4]=Data[4]^Data[12]^Data[20]^Data[28];
+        PB[5]=Data[5]^Data[13]^Data[21]^Data[29];
+        PB[6]=Data[6]^Data[14]^Data[22]^Data[30];
+        PB[7]=Data[7]^Data[15]^Data[23]^Data[31];
+      end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    CB1=CB;
+    PB1=PB;
+  end
+endmodule
+
+
+
+module Enc_Mem_reg(clk_in,Data_in,CB_in,PB_in,Data_out,CB_out,PB_out);
+  
+  
+  input clk_in;
+  input [31:0] Data_in;
+  input [19:0] CB_in;
+  input [7:0] PB_in;
+  output reg [31:0] Data_out;
+  output reg [19:0]CB_out;
+  output reg [7:0]PB_out;
+  
+  always@(posedge clk_in) begin
+    assign Data_out = Data_in;
+    assign CB_out = CB_in;
+    assign PB_out = PB_in;
+
+  end
+endmodule
+
+
+module Memory(clk,write_address,write_Data,read_Data,write_CB,read_CB,write_PB,read_PB,set_read,set_write,read_address);
+  input clk;
+  input set_read;
+  input set_write;
+  input[4:0]write_address;
+  input[4:0]read_address;
+  input[31:0]write_Data;
+  output reg[31:0]read_Data;
+  input[19:0]write_CB;
+  output reg[19:0]read_CB;
+  input[7:0]write_PB;
+  output reg[7:0]read_PB;
+integer j, i;
+  
+  reg [63:0] memory_ram [63:0];
+initial begin
+   for(i=0;i<63;i=i+1)begin
+        memory_ram[i]<= 1'b0 ;
+      end
+end
+  always @(negedge clk)
+begin
+  if(set_write)
+    begin
+      for(i=0;i<32;i=i+1)begin
+        memory_ram[i][write_address] <= write_Data[i];
+      end
+      for(i=32;i<52;i=i+1)begin
+        memory_ram[i][write_address] <= write_CB[i-32];
+      end
+      for(i=52;i<60;i=i+1)begin
+        memory_ram[i][write_address] <= write_PB[i-52];
+      end  
+    end
+end
+
+
+  always @(posedge clk)
+begin
+  if (set_read)
+    begin
+      for(i=0;i<32;i=i+1)begin
+        read_Data[i] <=  memory_ram[i][read_address];
+      end
+      for(i=32;i<52;i=i+1)begin
+        read_CB[i-32] <=  memory_ram[i][read_address];
+      end
+      for(i=52;i<60;i=i+1)begin
+        read_PB[i-52] <=  memory_ram[i][read_address];
+      end  
+    end
+end
+
+endmodule
+
+
+module Mem_primeGen_reg(clk,Data_in,CB_in,PB_in,Data_out,CB_out,PB_out);
+  input clk;
+  input [31:0] Data_in;
+  input [19:0] CB_in;
+  input [7:0] PB_in;
+  output reg [31:0] Data_out;
+  output reg [19:0]CB_out;
+  output reg [7:0]PB_out;
+  
+  always @ (posedge clk)
+    begin
+      assign Data_out = Data_in;
+    assign CB_out = CB_in;
+    assign PB_out = PB_in;
+    end
+endmodule
+
+
+module primeGen(clk,Data_in,CB_old_in,PB_old_in,CB_new1,PB_new1,Data_out,CB_old_out,PB_old_out);
+  input clk;
+  input [31:0] Data_in;
+  output reg [31:0] Data_out;
+  input [19:0] CB_old_in;
+  input [7:0] PB_old_in;
+  output reg [19:0] CB_old_out;
+  output reg [7:0] PB_old_out;
+  reg [19:0] CB_old;
+  reg [7:0] PB_old;
+  reg [19:0]CB_new;
+  reg [7:0]PB_new;
+  reg [31:0] Data;
+  output reg [19:0]CB_new1;
+  output reg [7:0]PB_new1;
+  
+  always @ (negedge clk)
+      begin
+        CB_old=CB_old_in;
+        PB_old=PB_old_in;
+        Data=Data_in;
+        CB_new[0]=Data[0]^Data[1]^Data[3]^Data[4]^Data[6];
+        
+        CB_new[5]=Data[8]^Data[9]^Data[11]^Data[12]^Data[14];
+        CB_new[10]=Data[16]^Data[17]^Data[19]^Data[20]^Data[22];
+        CB_new[15]=Data[24]^Data[25]^Data[27]^Data[28]^Data[30];
+        CB_new[1]=Data[0]^Data[2]^Data[3]^Data[5]^Data[6];
+        CB_new[6]=Data[8]^Data[10]^Data[11]^Data[13]^Data[14];
+        CB_new[11]=Data[16]^Data[18]^Data[19]^Data[21]^Data[22];
+        CB_new[16]=Data[24]^Data[26]^Data[27]^Data[29]^Data[30];
+        CB_new[2]=Data[1]^Data[2]^Data[3]^Data[7];
+        CB_new[7]=Data[9]^Data[10]^Data[11]^Data[15];
+        CB_new[12]=Data[17]^Data[18]^Data[19]^Data[23];
+        CB_new[17]=Data[25]^Data[26]^Data[27]^Data[31];
+        CB_new[3]=Data[4]^Data[5]^Data[6]^Data[7];
+        CB_new[8]=Data[12]^Data[13]^Data[14]^Data[15];
+        CB_new[13]=Data[20]^Data[21]^Data[22]^Data[23];
+        CB_new[18]=Data[28]^Data[29]^Data[30]^Data[31];
+       CB_new[4]=Data[0]^Data[1]^Data[2]^Data[3]^Data[4]^Data[5]^Data[6]^Data[7];
+   CB_new[9]=Data[8]^Data[9]^Data[10]^Data[11]^Data[12]^Data[13]^Data[14]^Data[15];
+        CB_new[14]=Data[16]^Data[17]^Data[18]^Data[19]^Data[20]^Data[21]^Data[22]^Data[23];
+        CB_new[19]=Data[24]^Data[25]^Data[26]^Data[27]^Data[28]^Data[29]^Data[30]^Data[31];
+        PB_new[0]=Data[0]^Data[8]^Data[16]^Data[24];
+        PB_new[1]=Data[1]^Data[9]^Data[17]^Data[25];
+        PB_new[2]=Data[2]^Data[10]^Data[18]^Data[26];
+        PB_new[3]=Data[3]^Data[11]^Data[19]^Data[27];
+        PB_new[4]=Data[4]^Data[12]^Data[20]^Data[28];
+        PB_new[5]=Data[5]^Data[13]^Data[21]^Data[29];
+        PB_new[6]=Data[6]^Data[14]^Data[22]^Data[30];
+        PB_new[7]=Data[7]^Data[15]^Data[23]^Data[31];
+      end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    CB_old_out=CB_old;
+    PB_old_out=PB_old;
+    CB_new1=CB_new;
+    PB_new1=PB_new;
+  end
+endmodule
+
+
+module primeGen_SyndGen_reg(clk,Data_in,CB_old_in,PB_old_in,CB_new_in,PB_new_in,Data_out,CB_old_out,PB_old_out,CB_new_out,PB_new_out);
+  input clk;
+  input [31:0]Data_in;
+  input [19:0]CB_old_in;
+  input [7:0]PB_old_in;
+  input [19:0]CB_new_in;
+  input [7:0]PB_new_in;
+  output reg [31:0]Data_out;
+  output reg [19:0]CB_old_out;
+  output reg [7:0]PB_old_out;
+  output reg [19:0]CB_new_out;
+  output reg [7:0]PB_new_out;
+  
+  always @ (posedge clk)
+    begin
+      assign Data_out = Data_in;
+    assign CB_old_out = CB_old_in;
+    assign PB_old_out = PB_old_in;
+      assign CB_new_out = CB_new_in;
+    assign PB_new_out = PB_new_in;
+    end
+endmodule
+
+
+module SyndGen(clk,Data_in,CB_old,PB_old,CB_new,PB_new,SBC1,SBP1,Data_out);
+  input clk;
+  reg [31:0]Data;
+  input[31:0]Data_in;
+  output reg[31:0]Data_out;
+  input [19:0]CB_old;
+  input [7:0]PB_old;
+  input [19:0]CB_new;
+  input [7:0]PB_new;
+  reg [19:0]SBC;
+  reg [7:0]SBP;
+  output reg [19:0]SBC1;
+  output reg [7:0]SBP1;
+  integer i;
+  always @ (negedge clk)
+    begin
+      Data=Data_in;
+      for(i=0;i<20;i=i+1)begin
+        SBC[i]=CB_old[i]^CB_new[i];
+      end
+      for(i=0;i<8;i=i+1)begin
+        SBP[i]=PB_old[i]^PB_new[i];
+      end
+    end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    SBC1=SBC;
+    SBP1=SBP;
+  end
+  
+endmodule
+
+
+
+module SyndGen_IdentError_reg(clk,Data_in,SBC_in,SBP_in,Data_out,SBC_out,SBP_out);
+  input clk;
+  input [31:0] Data_in;
+  input [19:0] SBC_in;
+  input [7:0] SBP_in;
+  output reg [31:0] Data_out;
+  output reg [19:0] SBC_out;
+  output reg [7:0] SBP_out;
+  
+  always @ (posedge clk)
+    begin
+      assign Data_out = Data_in;
+    assign SBC_out = SBC_in;
+    assign SBP_out = SBP_in;
+    end
+endmodule
+
+
+module identify_error_type(clk,Data_in,SBC_in,SBP_in,NE1,SE1,MED1,Data_out,SBC_out,SBP_out);
+  input clk;
+  reg [31:0]Data;
+  input[31:0]Data_in;
+  output reg[31:0]Data_out;
+  reg [19:0] SBC;
+  reg [7:0] SBP;
+  input [19:0] SBC_in;
+  input [7:0] SBP_in;
+  output reg [19:0] SBC_out;
+  output reg [7:0] SBP_out;
+  reg[3:0]NE;
+  reg[3:0]SE;
+  reg[3:0]MED;
+  output reg [3:0]NE1;
+  output reg [3:0]SE1;
+  output reg [3:0]MED1;
+  
+  
+  integer i,j;
+
+  
+  always @ (negedge clk)
+   begin
+     SBC=SBC_in;
+     SBP=SBP_in;
+     Data=Data_in;
+     for(i=0;i<4;i=i+1)begin
+      
+       if(SBC[(i*5)+4]&&(!(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3])))begin
+         SE[i]=1;
+       end
+       else if (!(SBC[(i*5)+4]&&(!(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3]))))begin
+         SE[i]=0;
+       end
+       
+       
+       if(! (SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4]))begin
+         NE[i]=1;
+       end
+       else if ( (SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4]))begin
+         NE[i]=0;
+       end
+       
+       
+       if(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4])begin
+         MED[i]=1;
+       end
+       else if (!(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4]))begin
+         MED[i]=0;
+       end
+        
+     end
+   end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    SBP_out=SBP;
+    SBC_out=SBC;
+    SE1=SE;
+    NE1=NE;
+    MED1=MED;
+  end
+endmodule
+
+
+module IdentError_CorrectError_reg(clk,Data_in,SBC_in,SBP_in,NE_in,SE_in,MED_in,Data_out,SBC_out,SBP_out,NE_out,SE_out,MED_out);
+  
+  input clk;
+  input [31:0] Data_in;
+  input [19:0] SBC_in;
+  input [7:0] SBP_in;
+  input [3:0]NE_in;
+  input [3:0]SE_in;
+  input [3:0]MED_in;
+  output reg [31:0] Data_out;
+  output reg [19:0] SBC_out;
+  output reg [7:0] SBP_out;
+  output reg [3:0]NE_out;
+  output reg [3:0]SE_out;
+  output reg [3:0]MED_out;
+  
+  always @ (posedge clk)
+    begin
+      assign Data_out = Data_in;
+      assign SBC_out = SBC_in;
+      assign SBP_out = SBP_in;
+      assign NE_out = NE_in;
+      assign SE_out = SE_in;
+      assign MED_out = MED_in;
+    end
+endmodule
+
+
+
+module Correct_Error(clk,Data_in,SBC,SBP,NE,SE,MED,Data_out1);
+  input clk;
+input  [31:0] Data_in;
+input [19:0] SBC;
+input [7:0] SBP;
+input [3:0]NE;
+input [3:0]SE;
+input [3:0]MED;
+  reg [31:0] Data_out;
+  output reg [31:0] Data_out1;
+integer i,j;
+  
+  always @ (negedge clk)
+
+  begin
+            
+
+    for(i=0;i<4;i=i+1)begin
+      if(NE[i])begin
+            for(j=0;j<8;j=j+1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)];
+        end
+      end
+    
+      else if (SE[i])begin
+        for(j=0;j<8;j=j+1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)];
+        end
+        if(SBC[i*5]*SBC[1+(i*5)]*SBC[2+(i*5)])begin
+          Data_out[3+(i*8)]=~Data_in[3+(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[1+(i*5)]*SBC[3+(i*5)])begin
+          Data_out[6+(i*8)]=~Data_in[6+(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[1+(i*5)])begin
+          Data_out[(i*8)]=~Data_in[(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[2+(i*5)])begin
+          Data_out[1+(i*8)]=~Data_in[1+(i*8)];
+        end
+        
+        else if(SBC[1+(i*5)]*SBC[2+(i*5)])begin
+          Data_out[2+(i*8)]=~Data_in[2+(i*8)];
+        end
+        
+        else if(SBC[1+(i*5)]*SBC[3+(i*5)])begin
+          Data_out[5+(i*8)]=~Data_in[5+(i*8)];
+        end
+        
+        else if(SBC[i*5]*SBC[3+(i*5)])begin
+          Data_out[4+(i*8)]=~Data_in[4+(i*8)];
+        end
+        
+        else if(SBC[2+(i*5)]*SBC[3+(i*5)])begin
+          Data_out[7+(i*8)]=~Data_in[7+(i*8)];
+        end
+        
+     
+      end
+    
+    
+      else if(MED[i])begin
+        for(j=0;j<8;j=j+1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)];
+        end
+        for(j=0;j<8;j=j+1)begin
+          if(SBP[j]==1)begin
+          Data_out[j+(i*8)]=Data_in[j+(i*8)]^(MED[i]*SBP[i]);
+          end
+        end
+        
+      end
+    end
+  end
+  always @ (posedge clk)begin
+    Data_out1=Data_out;
+  end
+endmodule
+
+
+/////////////////////////
+
+
+module testbench;
+  reg clk;
+  reg [5:0]PC;
+  
+  reg [4:0]write_address;
+  reg [4:0]read_address;
+  
+  
+  
+  
+  
+  initial clk=0;
+  always #5 clk=~clk;
+  
+  testall tt1(clk,PC,write_address,read_address,1,1);
+  
+  integer i,j;
+  initial
+    begin
+      #5
+      PC=6'b000100;
+      write_address=5'b00111;
+      read_address=5'b00111;
+      #10
+      PC=6'b001000;
+      #10
+      PC=6'b001100;
+      #10
+      PC=6'b010000;
+      #10
+      PC=6'b010100;
+      
+      
+     
+     
+     
+    end
+   initial begin
+  $dumpfile("dump.vcd");
+  $dumpvars;
+  #300
+  $finish;
+  		end
+
+  
+endmodule

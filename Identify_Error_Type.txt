@@ -1,0 +1,119 @@
+module identify_error_type(clk,Data_in,SBC_in,SBP_in,NE1,SE1,MED1,Data_out,SBC_out,SBP_out);
+  input clk;
+  reg [31:0]Data;
+  input[31:0]Data_in;
+  output reg[31:0]Data_out;
+  reg [19:0] SBC;
+  reg [7:0] SBP;
+  input [19:0] SBC_in;
+  input [7:0] SBP_in;
+  output reg [19:0] SBC_out;
+  output reg [7:0] SBP_out;
+  reg[3:0]NE;
+  reg[3:0]SE;
+  reg[3:0]MED;
+  output reg [3:0]NE1;
+  output reg [3:0]SE1;
+  output reg [3:0]MED1;
+  
+  
+  integer i,j;
+
+  
+  always @ (negedge clk)
+   begin
+     SBC=SBC_in;
+     SBP=SBP_in;
+     Data=Data_in;
+     for(i=0;i<4;i=i+1)begin
+      
+       if(SBC[(i*5)+4]&&(!(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3])))begin
+         SE[i]=1;
+       end
+       else if (!(SBC[(i*5)+4]&&(!(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3]))))begin
+         SE[i]=0;
+       end
+       
+       
+       if(! (SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4]))begin
+         NE[i]=1;
+       end
+       else if ( (SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4]))begin
+         NE[i]=0;
+       end
+       
+       
+       if(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4])begin
+         MED[i]=1;
+       end
+       else if (!(SBC[(i*5)] || SBC[(i*5)+1] || SBC[(i*5)+2] || SBC[(i*5)+3] || SBC[(i*5)+4]))begin
+         MED[i]=0;
+       end
+        
+     end
+   end
+  always @ (posedge clk)begin
+    Data_out=Data;
+    SBP_out=SBP;
+    SBC_out=SBC;
+    SE1=SE;
+    NE1=NE;
+    MED1=MED;
+  end
+endmodule
+
+
+
+/////////////////////
+
+
+
+module testbench_ident_err_type;
+  reg clk_t;
+  reg [31:0] Data_in_t;
+  wire [31:0] Data_out_t;
+  reg [19:0] SBC_in_t;
+  reg [7:0] SBP_in_t;
+  wire [19:0] SBC_out_t;
+  wire [7:0] SBP_out_t;
+  wire [3:0]NE_t;
+  wire [3:0]SE_t;
+  wire [3:0]MED_t;
+  
+  identify_error_type iden1(clk_t,Data_in_t,SBC_in_t,SBP_in_t,NE_t,SE_t,MED_t,Data_out_t,SBC_out_t,SBP_out_t);
+  
+  initial clk_t=0;
+  always #20 clk_t=~clk_t;
+  
+  integer i,j;
+  initial
+    begin
+      for(i=0;i<32;i=i+1)begin
+        #20 Data_in_t[i]=($random)%2;end 
+      for(i=1;i<=32;i=i+1)begin
+        #5 $write("%b",Data_out_t[i-1]);
+        if(i%8==0 & i!=0)begin
+          #5 $display(".");
+        end
+      end
+      #5 $display(".");
+      for(i=0;i<20;i=i+1)begin
+        #20 SBC_in_t[i]=($random)%1;end
+      #20 SBC_in_t[1]=1;
+      #20 SBC_in_t[14]=1;
+      #20 SBC_in_t[15]=1;
+      #20 SBC_in_t[18]=1;
+      for(i=0;i<20;i=i+1)begin
+        #5 $display("SBC[%1d]=%b",i,SBC_out_t[i]);
+      end
+      
+      #20 $display("NE =  %b",NE_t);
+      #20 $display("SE =  %b",SE_t);
+      #20 $display("MED = %b",MED_t);
+
+
+
+
+      #1000 $finish;
+    end
+endmodule
